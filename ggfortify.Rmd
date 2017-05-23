@@ -1,0 +1,328 @@
+---
+
+author: "Nana Boateng"
+date: '`r Sys.Date()`'
+output: html_document
+title: "ggfortify Tutorial"
+---
+
+```{r, include=FALSE}
+list=c("tidyverse","stringr","forcats","ggmap","rvest","tm","SnowballC","dplyr","calibrate","doParallel",
+       "stringi","ggplot2","maps","httr","rsdmx","devtools","plyr","dplyr","ggplot2","caret","elasticnet",
+       "magrittr","broom","glmnet","Hmisc",'knitr',"RSQLite","RANN","lubridate","ggvis","plotly","lars",
+       "ggcorrplot","GGally","ROCR","lattice","car","corrgram","ggcorrplot","parallel","readxl","ggmosaic",
+       "vcd","Amelia","d3heatmap","ResourceSelection","ROCR","plotROC","DT","aod","mice","Hmisc","data.table","pls","plsdepot","gvlma","ggthemes","ggfortify","grid","ggpmisc")
+
+
+
+list_packages <- list
+new.packages <- list_packages[!(list_packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+R<-suppressWarnings(suppressMessages(sapply(list, require, character.only = TRUE)))
+
+```
+
+
+```{r}
+autoplot(lm(Petal.Width ~ Petal.Length, data = iris), data = iris,
+         colour = 'Species', label.size = 3)
+```
+```{r}
+autoplot(lm(Petal.Width ~ Petal.Length, data = iris), data = iris,
+         colour = 'Species', label.size = F)
+```
+
+
+```{r}
+m <- glm(Murder ~ Assault + UrbanPop + Rape,
+         family = gaussian, data = USArrests)
+autoplot(m, which = 1:6, colour = 'dodgerblue3',
+         smooth.colour = 'black', smooth.linetype = 'dashed',
+         ad.colour = 'blue',
+         label.size = 3, label.n = 5, label.colour = 'blue',
+         ncol = 3)
+```
+
+
+```{r}
+par(mfrow = c(1, 2))
+m <- lm(Petal.Width ~ Petal.Length, data = iris)
+
+autoplot(m, which = 1:6, ncol = 3, label.size = 3)+theme_bw()
+```
+
+
+
+```{r}
+library(glmnet)
+data(QuickStartExample)
+fit <- glmnet::glmnet(x, y)
+autoplot(fit)+theme_bw()
+```
+
+```{r}
+fit <- glmnet::cv.glmnet(x, y)
+autoplot(fit, colour = 'blue')+theme_bw()
+```
+```{r}
+par(mfrow = c(3, 2))
+autoplot(m,which=1:6, label.size = 3) + theme(axis.line.x = element_line(size=.5, colour = "black"),
+            axis.line.y = element_line(size=.5, colour = "black"),
+            axis.text.x=element_text(colour="black", size = 9),
+            axis.text.y=element_text(colour="black", size = 9),
+            panel.grid.major = element_line(colour = "#d3d3d3"),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(), panel.background = element_blank(),
+            plot.title = element_text(size = 14, family = "Tahoma", face = "bold"),
+            text=element_text(family="Tahoma"))
+```
+
+
+
+```{r}
+
+autoplot(m,which=c(1,3,5,6), label.size = 3) + theme(axis.line.x = element_line(size=.5, colour = "black"),
+            axis.line.y = element_line(size=.5, colour = "black"),
+            axis.text.x=element_text(colour="black", size = 9),
+            axis.text.y=element_text(colour="black", size = 9),
+            panel.grid.major = element_line(colour = "#d3d3d3"),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(), panel.background = element_blank(),
+            plot.title = element_text(size = 14, family = "Tahoma", face = "bold"),
+            text=element_text(family="Tahoma"))
+
+```
+
+
+
+
+
+```{r}
+library(ggthemes)
+library(grid)
+autoplot(m, label.size = 3) + theme_economist() +
+      theme(axis.line.x = element_line(size=.5, colour = "black"),
+            axis.line.y = element_line(size=.5, colour = "black"),
+            axis.text.x=element_text(colour="black", size = 9),
+            axis.text.y=element_text(colour="black", size = 9),
+            panel.grid.major = element_line(colour = "#d3d3d3"),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(), panel.background = element_blank(),
+            plot.title = element_text(family = "Tahoma"),
+            text=element_text(family="Tahoma"))
+```
+
+
+
+
+
+
+```{r}
+library(ggfortify)
+myfortdata = fortify(USArrests)
+myfortdata%>%head()%>%DT::datatable()
+#head(myfortdata)%>%head()%>%DT::datatable()
+#dim(myfortdata)
+
+```
+
+
+
+
+```{r}
+
+
+#broom::augment(m)
+myfortdata=cbind.data.frame(myfortdata,broom::augment(m))
+#myfortdata
+ggplot(data = myfortdata, aes(x = .fitted, y = .resid)) +
+  geom_hline(yintercept = 0, colour = "firebrick3") +
+ geom_point()
+```
+
+```{r}
+#===========================================================================
+# 
+# fortify data add regression diagnostics to data
+#===========================================================================
+
+library(ggfortify)
+myfortdata= fortify(m)
+myfortdata%>%head()%>%DT::datatable()
+
+
+```
+
+
+
+
+
+```{r}
+# par(mfrow=c(2,2))  # set 2 rows and 2 column plot layout
+# diagPlot<-function(model){
+#     p1<-ggplot(model, aes(.fitted, .resid))+geom_point()
+#     p1<-p1+stat_smooth(method="loess")+geom_hline(yintercept=0, col="red", linetype="dashed")
+#     p1<-p1+xlab("Fitted values")+ylab("Residuals")
+#     p1<-p1+ggtitle("Residual vs Fitted Plot")+theme_bw()
+#     + theme_bw()
+#     
+#     p3<-ggplot(model, aes(.fitted, sqrt(abs(.stdresid))))+geom_point(na.rm=TRUE)
+#     p3<-p3+stat_smooth(method="loess", na.rm = TRUE)+xlab("Fitted Value")
+#     p3<-p3+ylab(expression(sqrt("|Standardized residuals|")))
+#     p3<-p3+ggtitle("Scale-Location")+theme_bw()
+#     
+#     p4<-ggplot(model, aes(seq_along(.cooksd), .cooksd))+geom_bar(stat="identity", position="identity")
+#     p4<-p4+xlab("Obs. Number")+ylab("Cook's distance")
+#     p4<-p4+ggtitle("Cook's distance")+theme_bw()
+#     
+#     p5<-ggplot(model, aes(.hat, .stdresid))+geom_point(aes(size=.cooksd), na.rm=TRUE)
+#     p5<-p5+stat_smooth(method="loess", na.rm=TRUE)
+#     p5<-p5+xlab("Leverage")+ylab("Standardized Residuals")
+#     p5<-p5+ggtitle("Residual vs Leverage Plot")
+#     p5<-p5+scale_size_continuous("Cook's Distance", range=c(1,5))
+#     p5<-p5+theme_bw()+theme(legend.position="bottom")
+#     
+#     p6<-ggplot(model, aes(.hat, .cooksd))+geom_point(na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
+#     p6<-p6+xlab("Leverage hii")+ylab("Cook's Distance")
+#     p6<-p6+ggtitle("Cook's dist vs Leverage hii/(1-hii)")
+#     p6<-p6+geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed")
+#     p6<-p6+theme_bw()
+#     
+#     return(list(rvfPlot=p1, qqPlot=p2, sclLocPlot=p3, cdPlot=p4, rvlevPlot=p5, cvlPlot=p6))
+# }
+# 
+# 
+# diagPlts<-diagPlot(model1)
+# diagPlts
+#lbry<-c("grid", "gridExtra")
+#R=lapply(lbry, require, character.only=TRUE, warn.conflicts = FALSE, quietly = TRUE)
+#do.call(grid.arrange, c(diagPlts, main="Diagnostic Plots", ncol=3))
+
+```
+
+
+```{r}
+# Pattern within each group in the same graph
+ggplot(data = iris, aes(x = Petal.Length, y = Sepal.Length, colour = factor(Species))) +
+  geom_point() +
+  stat_smooth(method = "loess", se = FALSE)
+```
+
+
+
+```{r}
+#not the best scatterplot
+tp <- ggplot(ToothGrowth, aes(x=dose, y=len))
+tp + geom_point()
+
+#mean and cl of len at each dose
+tp.1 <- tp + stat_summary(fun.data="mean_cl_normal")
+tp.1
+
+#add a line plot of means to see dose-len relationship
+#maybe not linear
+tp.2 <- tp.1 + stat_summary(fun.y="mean", geom="line")
+tp.2
+```
+
+
+```{r}
+#create dose-squared variable
+ToothGrowth$dosesq <- ToothGrowth$dose^2
+lm2 <- lm(len ~ dose + dosesq*supp, data=ToothGrowth)
+lm2diag <- fortify(lm2)
+#q-q plot of residuals and diagonal reference line
+#geom_abline default aesthetics are yintercept=0 and slope=1
+ggplot(lm2diag, aes(sample=.stdresid)) + 
+  stat_qq() + 
+  geom_abline()
+```
+
+
+```{r}
+#residual vs fitted, means and s.e.
+ggplot(lm2diag, aes(x=.fitted, y=.stdresid)) + 
+  geom_point() + 
+  stat_summary() + 
+  stat_summary(fun.y="mean", geom="line")
+## No summary function supplied, defaulting to `mean_se()
+```
+
+
+
+```{r}
+# in geom_text we SET size to 4 so that size of text is constant,
+#   and not tied to .cooksd.  We also  nudge the text .001 (x-axis units)
+#   to the left, and separate overlapping labels
+ggplot(lm2diag, aes(x=.hat, y=.stdresid, size=.cooksd)) +     
+  geom_point() +
+  geom_text(aes(label=row.names(lm2diag)), 
+             size=4, nudge_x=-0.003, check_overlap=T)
+```
+
+
+
+```{r}
+#create new data set of values from 0.5 to 2 for each supp 
+newdata <- data.frame(dose=rep(seq(0.5, 2, .01),each=2), 
+                      supp=factor(c("OJ", "VC")))
+#dose squared variable
+newdata$dosesq <- newdata$dose^2
+#add predicted values and confidence limits
+newdata <- data.frame(newdata, predict(lm2, newdata, 
+                                       interval="confidence"))
+
+#fit curves by supp
+p1 <- ggplot(newdata, aes(x=dose, y=fit, color=supp)) +
+  geom_line()+theme_bw()
+p1
+```
+```{r}
+#add confidence bands
+p2 <- p1 + geom_ribbon(aes(ymax=upr, ymin=lwr, fill=supp))
+p2
+```
+
+
+
+
+```{r}
+#make confidence bands transparent
+p3 <- p2 + geom_ribbon(aes(ymax=upr, ymin=lwr, fill=supp), 
+                           alpha=1/5)
+p3
+```
+
+
+
+```{r}
+#overlay observed data
+p4 <- p3 +  geom_point(data=ToothGrowth, aes(y=len))
+p4
+```
+
+
+
+```{r}
+#specify hex codes for orange, #fc8d62, and green #66c2a5
+p5 <- p4 + 
+  scale_color_manual(values=c("#fc8d62", "#66c2a5")) +
+  scale_fill_manual(values=c("#fc8d62", "#66c2a5"))
+p5
+```
+
+
+
+```{r}
+#note the default text justifications for the x-axis vs guide
+p6 <- p5 + labs(x="dosage vitamin C\n(mg/day)", 
+                    y="tooth length", fill="supplement\ntype",
+                    color ="supplement\ntype") +
+  theme(legend.position="bottom")
+p6
+```
+
+
+
+
